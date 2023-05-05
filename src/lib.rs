@@ -1398,8 +1398,8 @@ mod test {
     use approx::assert_relative_eq;
     use uom::si::ratio::percent;
 
-    use super::*;
     use super::effect::{EffectType, FilterEffectMode, FilterMode};
+    use super::*;
 
     fn read_preset(filename: &str) -> Result<Preset> {
         let path = &Path::new("tests").join(&filename);
