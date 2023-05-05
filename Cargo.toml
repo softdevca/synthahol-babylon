@@ -10,9 +10,7 @@ license = "MIT or Apache-2.0"
 homepage = "https://github.com/softdevca/synthahol-babylon"
 repository = "https://github.com/softdevca/synthahol-babylon"
 keywords = ["audio", "synth", "patch", "preset", "babylon"]
-
-# Prevent accidentally publishing to crates.io
-publish = false
+publish = true 
 
 [dependencies]
 log = "0.4"
