@@ -9,7 +9,6 @@ synthesizer
 [![crates.io][crates.io-badge]][crates.io]
 [![Docs][docs-badge]][docs]
 [![Workflows][workflows-badge]][workflows]
-[![Coverage][coverage-badge]][coverage]
 </div>
 
 ## Overview
@@ -61,8 +60,6 @@ under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 
-[coverage]: https://coveralls.io/github/maxcountryman/synthahol-babylong?branch=main
-[coverage-badge]: https://coveralls.io/repos/github/softdevca/synthahol-babylong/badge.svg?branch=main
 [crates.io]: https://crates.io/crates/synthahol-babylon
 [crates.io-badge]: https://img.shields.io/crates/v/synthahol-babylon?logo=rust&logoColor=white&style=flat-square
 [docs]: https://docs.rs/synthahol-babylon
