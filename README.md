@@ -63,6 +63,6 @@ specific language governing permissions and limitations under the License.
 [crates.io]: https://crates.io/crates/synthahol-babylon
 [crates.io-badge]: https://img.shields.io/crates/v/synthahol-babylon?logo=rust&logoColor=white&style=flat-square
 [docs]: https://docs.rs/synthahol-babylon
-[docs-badge]: https://docs.rs/synthahol-babylong/badge.svg
-[workflows]: https://github.com/softdevca/synthahol-babylong/actions/workflows/ci.yml
-[workflows-badge]: https://github.com/softdevca/synthahol-babylong/actions/workflows/ci.yml/badge.svg
+[docs-badge]: https://docs.rs/synthahol-babylon/badge.svg
+[workflows]: https://github.com/softdevca/synthahol-babylon/actions/workflows/ci.yml
+[workflows-badge]: https://github.com/softdevca/synthahol-babylon/actions/workflows/ci.yml/badge.svg
