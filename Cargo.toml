@@ -1,0 +1,27 @@
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "synthahol-babylon"
+version = "0.3.0"
+edition = "2021"
+authors = ["Sheldon Young <sheldon@softdev.ca>"]
+description = "Read presets for the Babylon synthesizer"
+license = "MIT or Apache-2.0"
+homepage = "https://github.com/softdevca/synthahol-babylon"
+repository = "https://github.com/softdevca/synthahol-babylon"
+keywords = ["audio", "synth", "patch", "preset", "babylon"]
+
+# Prevent accidentally publishing to crates.io
+publish = false
+
+[dependencies]
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde-xml-rs = "0.6"
+strum = "0.24"
+strum_macros = "0.24"
+uom = { version = "0.34", default-features = false, features = ["f64", "si", "std"] }
+
+[dev-dependencies]
+approx = "0.5"
+
