@@ -21,12 +21,15 @@ synthesizer by [W. A. Production](https://www.waproduction.com).
 It was developed independently by Sheldon Young and is not a product of
 W. A. Production. Please do not contact them for support.
 
-## Reading and Writing a Preset
+## Reading a Preset
 
 ```rust
 use synthahol_babylon::Preset;
 
 let preset = Preset::read_file("my-preset.bab").unwrap();
+
+println!("Preset name: {}", preset.name);
+println!("Polyphony: {}", preset.polyphony);
 ```
 
 ## Issues
@@ -64,5 +67,5 @@ specific language governing permissions and limitations under the License.
 [crates.io-badge]: https://img.shields.io/crates/v/synthahol-babylon?logo=rust&logoColor=white&style=flat-square
 [docs]: https://docs.rs/synthahol-babylon
 [docs-badge]: https://docs.rs/synthahol-babylong/badge.svg
-[workflows]: https://github.com/softdevca/synthahol-babylong/actions/workflows/rust.yml
-[workflows-badge]: https://github.com/softdevca/synthahol-babylong/actions/workflows/rust.yml/badge.svg
+[workflows]: https://github.com/softdevca/synthahol-babylong/actions/workflows/ci.yml
+[workflows-badge]: https://github.com/softdevca/synthahol-babylong/actions/workflows/ci.yml/badge.svg

@@ -8,6 +8,8 @@
 //!
 //! let path = std::path::Path::new("tests") .join("init-1.0.2.bab");
 //! let preset = Preset::read_file(&path).unwrap();
+//! println!("Preset name: {}", preset.name);
+//! println!("Polyphony: {}", preset.polyphony);
 //! ```
 //!
 //! # Developer
