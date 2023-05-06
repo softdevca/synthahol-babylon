@@ -1,5 +1,8 @@
-//! [Babylon](https://www.waproduction.com/plugins/view/babylon) is a virtual
-//! analog synth by W. A. Production.
+//! Library to read presets for the
+//! [Babylon](https://www.waproduction.com/plugins/view/babylon)
+//! synthesizer
+//!
+//! Babylon is a virtual analog synth by W. A. Production.
 //!
 //! # Reading a Preset
 //!
@@ -11,19 +14,6 @@
 //! println!("Preset name: {}", preset.name);
 //! println!("Polyphony: {}", preset.polyphony);
 //! ```
-//!
-//! # Developer
-//!
-//! Babylon was written by Rahman Fotouhi at
-//! [http://rfmusic.net](http://rfmusic.net). The Wayback Machine has a
-//! [version of his site](https://web.archive.org/web/20200806002200/http://rfmusic.net/en/)
-//! before it linked to W. A. Production.
-//!
-//! # Implementation
-//!
-//! Babylon 1.0.3 was written using JUCE 6.0.8.
-//!
-//! Version 1.0.2 has build number 15.
 
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
@@ -276,7 +266,7 @@ pub struct Unison {
     pub mix: f64,
 }
 
-/// The discriminant of the items match the file format.
+/// The discriminants of the items match the file format.
 #[derive(AsRefStr, Copy, Clone, Debug, EnumIter, Eq, PartialEq)]
 #[repr(u32)]
 pub enum Waveform {
@@ -963,7 +953,7 @@ impl PluginParamTree {
     }
 }
 
-/// Converted from a `PluginParamTree` into a more usable model.
+// Converted from a `PluginParamTree` into a more usable model.
 #[derive(Debug)]
 pub struct Preset {
     pub name: String,
@@ -1271,11 +1261,16 @@ impl Preset {
             ratio: param_tree.remove_or("ChorusRatio", 0.5),
         };
 
+        let delay_filter_mode_float: f64 = param_tree.remove_or("DelayLP", 0.0);
+        let delay_filter_mode = DelayFilterMode::from_or(
+            (delay_filter_mode_float * 1000.0) as u32,
+            DelayFilterMode::Off,
+        );
         let delay = Delay {
             enabled: param_tree.remove_bool_or("DelaySwitch", false),
             ping_pong: param_tree.remove_bool_or("DelayMode", false),
             feedback: param_tree.remove_or("DelayFeed", 0.3),
-            filter: param_tree.remove_or("DelayLP", 0.0),
+            filter_mode: delay_filter_mode,
             sync: param_tree.remove_bool_or("DelaySync", true),
             time: param_tree.remove_or("DelayTime", 0.17),
             mix: param_tree.remove_or("DelayMix", 0.2),
@@ -1411,220 +1406,222 @@ mod test {
     /// Check defaults.
     #[test]
     fn init() {
-        let preset = read_preset("init-1.0.2.bab").unwrap();
-        assert_eq!(preset.master_volume_normalized, 0.5); // 0 dB
-        assert_eq!(preset.polyphony, 8);
-        assert_eq!(preset.portamento_mode, PortamentoMode::Poly);
-        assert_eq!(preset.midi_play_mode, MidiPlayMode::Normal);
-        assert_eq!(preset.velocity_curve, 0.5);
-        assert_eq!(preset.key_track_curve, 0.0);
-        assert_eq!(preset.pitch_bend_range, 2.0);
-        assert!(!preset.limit_enabled);
-        assert_relative_eq!(preset.glide, 30.0, epsilon = 0.0001);
+        for file in &["init-1.0.2.bab", "init-1.0.4.bab"] {
+            let preset = read_preset(file).unwrap();
+            assert_eq!(preset.master_volume_normalized, 0.5); // 0 dB
+            assert_eq!(preset.polyphony, 8);
+            assert_eq!(preset.portamento_mode, PortamentoMode::Poly);
+            assert_eq!(preset.midi_play_mode, MidiPlayMode::Normal);
+            assert_eq!(preset.velocity_curve, 0.5);
+            assert_eq!(preset.key_track_curve, 0.0);
+            assert_eq!(preset.pitch_bend_range, 2.0);
+            assert!(!preset.limit_enabled);
+            assert_relative_eq!(preset.glide, 30.0, epsilon = 0.0001);
 
-        assert_eq!(preset.name, "init".to_owned());
-        assert!(preset.description.is_none());
+            assert!(preset.name.starts_with("init"));
+            assert!(preset.description.is_none());
 
-        let envelope = &preset.envelope;
-        assert_relative_eq!(envelope.attack.get::<millisecond>(), 2.0, epsilon = 0.0001);
-        assert_relative_eq!(envelope.attack_curve, 0.07, epsilon = 0.0001);
-        assert_relative_eq!(envelope.decay.get::<millisecond>(), 150.0, epsilon = 0.0001);
-        assert_relative_eq!(envelope.decay_falloff, 0.07, epsilon = 0.0001);
-        assert_relative_eq!(envelope.sustain.get::<percent>(), 0.9, epsilon = 0.0001);
-        assert_relative_eq!(envelope.release.get::<millisecond>(), 4.0, epsilon = 0.0001);
-        assert_relative_eq!(envelope.release_falloff, 0.07, epsilon = 0.0001);
-        assert_relative_eq!(preset.envelope_curve, 0.14, epsilon = 0.0001);
+            let envelope = &preset.envelope;
+            assert_relative_eq!(envelope.attack.get::<millisecond>(), 2.0, epsilon = 0.0001);
+            assert_relative_eq!(envelope.attack_curve, 0.07, epsilon = 0.0001);
+            assert_relative_eq!(envelope.decay.get::<millisecond>(), 150.0, epsilon = 0.0001);
+            assert_relative_eq!(envelope.decay_falloff, 0.07, epsilon = 0.0001);
+            assert_relative_eq!(envelope.sustain.get::<percent>(), 0.9, epsilon = 0.0001);
+            assert_relative_eq!(envelope.release.get::<millisecond>(), 4.0, epsilon = 0.0001);
+            assert_relative_eq!(envelope.release_falloff, 0.07, epsilon = 0.0001);
+            assert_relative_eq!(preset.envelope_curve, 0.14, epsilon = 0.0001);
 
-        let tuning = &preset.tuning;
-        assert_eq!(tuning.transpose, 0.0);
-        assert_eq!(tuning.scale, 0);
-        assert_eq!(tuning.root_key, 0);
-        let tunings = tuning.tunings;
-        assert_eq!(tunings, [0.0_f64; 12]);
+            let tuning = &preset.tuning;
+            assert_eq!(tuning.transpose, 0.0);
+            assert_eq!(tuning.scale, 0);
+            assert_eq!(tuning.root_key, 0);
+            let tunings = tuning.tunings;
+            assert_eq!(tunings, [0.0_f64; 12]);
 
-        let filter = &preset.filter;
-        assert!(!filter.enabled);
-        assert_eq!(filter.mode, FilterMode::LowPass);
-        assert_relative_eq!(filter.resonance, 0.0, epsilon = 0.0001);
-        assert_relative_eq!(filter.key_tracking, 0.0, epsilon = 0.0001);
-        assert_relative_eq!(filter.cutoff_frequency, 100.0, epsilon = 0.0001);
-        assert_relative_eq!(filter.envelope_amount, 0.0, epsilon = 0.0001);
-        assert!(!filter.effect_enabled);
-        assert_relative_eq!(filter.effect_amount, 0.5, epsilon = 0.0001);
-        assert_eq!(filter.effect_mode, FilterEffectMode::Off);
+            let filter = &preset.filter;
+            assert!(!filter.enabled);
+            assert_eq!(filter.mode, FilterMode::LowPass);
+            assert_relative_eq!(filter.resonance, 0.0, epsilon = 0.0001);
+            assert_relative_eq!(filter.key_tracking, 0.0, epsilon = 0.0001);
+            assert_relative_eq!(filter.cutoff_frequency, 100.0, epsilon = 0.0001);
+            assert_relative_eq!(filter.envelope_amount, 0.0, epsilon = 0.0001);
+            assert!(!filter.effect_enabled);
+            assert_relative_eq!(filter.effect_amount, 0.5, epsilon = 0.0001);
+            assert_eq!(filter.effect_mode, FilterEffectMode::Off);
 
-        let filter_env = &filter.envelope;
-        assert_relative_eq!(
-            filter_env.attack.get::<millisecond>(),
-            2.0,
-            epsilon = 0.0001
-        );
-        assert_relative_eq!(filter_env.attack_curve, 0.07, epsilon = 0.0001);
-        assert_relative_eq!(
-            filter_env.decay.get::<millisecond>(),
-            150.0,
-            epsilon = 0.0001
-        );
-        assert_relative_eq!(filter_env.decay_falloff, 0.07, epsilon = 0.0001);
-        assert_relative_eq!(filter_env.sustain.get::<percent>(), 0.02, epsilon = 0.0001);
-        assert_relative_eq!(
-            filter_env.release.get::<millisecond>(),
-            4.0,
-            epsilon = 0.0001
-        );
-        assert_relative_eq!(filter_env.release_falloff, 0.07, epsilon = 0.0001);
-        assert_relative_eq!(preset.filter_envelope_curve, 0.14, epsilon = 0.0001);
+            let filter_env = &filter.envelope;
+            assert_relative_eq!(
+                filter_env.attack.get::<millisecond>(),
+                2.0,
+                epsilon = 0.0001
+            );
+            assert_relative_eq!(filter_env.attack_curve, 0.07, epsilon = 0.0001);
+            assert_relative_eq!(
+                filter_env.decay.get::<millisecond>(),
+                150.0,
+                epsilon = 0.0001
+            );
+            assert_relative_eq!(filter_env.decay_falloff, 0.07, epsilon = 0.0001);
+            assert_relative_eq!(filter_env.sustain.get::<percent>(), 0.02, epsilon = 0.0001);
+            assert_relative_eq!(
+                filter_env.release.get::<millisecond>(),
+                4.0,
+                epsilon = 0.0001
+            );
+            assert_relative_eq!(filter_env.release_falloff, 0.07, epsilon = 0.0001);
+            assert_relative_eq!(preset.filter_envelope_curve, 0.14, epsilon = 0.0001);
 
-        //
-        // Oscillators
-        //
+            //
+            // Oscillators
+            //
 
-        assert_eq!(preset.oscillators.len(), 3);
-        assert!(preset.oscillators[0].enabled);
-        assert!(!preset.oscillators[1].enabled);
-        assert!(!preset.oscillators[2].enabled);
-        for osc in &preset.oscillators {
-            assert!(!osc.invert);
-            assert!(!osc.reverse);
-            assert!(!osc.free_run);
-            assert!(!osc.sync_all);
+            assert_eq!(preset.oscillators.len(), 3);
+            assert!(preset.oscillators[0].enabled);
+            assert!(!preset.oscillators[1].enabled);
+            assert!(!preset.oscillators[2].enabled);
+            for osc in &preset.oscillators {
+                assert!(!osc.invert);
+                assert!(!osc.reverse);
+                assert!(!osc.free_run);
+                assert!(!osc.sync_all);
 
-            assert!(!osc.am_enabled);
-            assert_eq!(osc.am_amount, 0.0);
-            assert!(!osc.fm_enabled);
-            assert_eq!(osc.fm_amount, 0.0);
-            assert!(!osc.rm_enabled);
-            assert_eq!(osc.rm_amount, 0.0);
+                assert!(!osc.am_enabled);
+                assert_eq!(osc.am_amount, 0.0);
+                assert!(!osc.fm_enabled);
+                assert_eq!(osc.fm_amount, 0.0);
+                assert!(!osc.rm_enabled);
+                assert_eq!(osc.rm_amount, 0.0);
 
-            assert_eq!(osc.waveform, Waveform::Sine);
+                assert_eq!(osc.waveform, Waveform::Sine);
 
-            assert_relative_eq!(osc.pan, 0.5, epsilon = 0.0001);
-            assert_relative_eq!(osc.phase, 0.0, epsilon = 0.0001);
-            assert_relative_eq!(osc.volume, 0.5, epsilon = 0.0001);
+                assert_relative_eq!(osc.pan, 0.5, epsilon = 0.0001);
+                assert_relative_eq!(osc.phase, 0.0, epsilon = 0.0001);
+                assert_relative_eq!(osc.volume, 0.5, epsilon = 0.0001);
 
-            assert_relative_eq!(osc.pitch, 0.0, epsilon = 0.0001);
-            assert_eq!(osc.fine_tuning, 0);
-            assert_eq!(osc.semitone_tuning, 0);
-            assert_eq!(osc.octave_tuning, 0);
+                assert_relative_eq!(osc.pitch, 0.0, epsilon = 0.0001);
+                assert_eq!(osc.fine_tuning, 0);
+                assert_eq!(osc.semitone_tuning, 0);
+                assert_eq!(osc.octave_tuning, 0);
 
-            let unison = &osc.unison;
-            assert_eq!(unison.voices, 1);
-            assert_relative_eq!(unison.detune, 0.2, epsilon = 0.0001);
-            assert_relative_eq!(unison.spread, 0.5, epsilon = 0.0001);
-            assert_relative_eq!(unison.mix, 1.0, epsilon = 0.0001);
+                let unison = &osc.unison;
+                assert_eq!(unison.voices, 1);
+                assert_relative_eq!(unison.detune, 0.2, epsilon = 0.0001);
+                assert_relative_eq!(unison.spread, 0.5, epsilon = 0.0001);
+                assert_relative_eq!(unison.mix, 1.0, epsilon = 0.0001);
+            }
+
+            assert!(!preset.hard_sync);
+
+            let noise = &preset.noise;
+            assert!(!noise.enabled);
+            assert_relative_eq!(noise.width, 1.0, epsilon = 0.0001);
+            assert_relative_eq!(noise.pan, 0.5, epsilon = 0.0001);
+            assert_relative_eq!(noise.volume, 0.32, epsilon = 0.0001);
+
+            //
+            // Modulators
+            //
+
+            assert_eq!(preset.lfos.len(), 2);
+            for lfo in &preset.lfos {
+                assert!(!lfo.enabled);
+                assert_eq!(lfo.waveform, Waveform::Sine);
+                assert!(lfo.sync);
+                assert!(!lfo.invert);
+                assert!(!lfo.reverse);
+                assert!(!lfo.mono);
+                assert!(!lfo.free_run);
+                assert_relative_eq!(lfo.frequency, 0.35, epsilon = 0.0001);
+                assert_relative_eq!(lfo.phase, 0.0, epsilon = 0.0001);
+            }
+
+            assert_eq!(preset.mod_envelopes.len(), 2);
+            for mod_envelope in &preset.mod_envelopes {
+                assert!(!mod_envelope.enabled);
+                assert_relative_eq!(mod_envelope.curve, 0.14, epsilon = 0.0001);
+                let env = &mod_envelope.envelope;
+                assert_relative_eq!(env.attack.get::<millisecond>(), 1.0, epsilon = 0.0001);
+                assert_relative_eq!(env.attack_curve, 0.07, epsilon = 0.0001);
+                assert_relative_eq!(env.decay.get::<millisecond>(), 150.0, epsilon = 0.0001);
+                assert_relative_eq!(env.decay_falloff, 0.07, epsilon = 0.0001);
+                assert_relative_eq!(env.sustain.get::<percent>(), 0.9, epsilon = 0.0001);
+                assert_relative_eq!(env.release.get::<millisecond>(), 1.0, epsilon = 0.0001);
+                assert_relative_eq!(env.release_falloff, 0.07, epsilon = 0.0001);
+            }
+
+            let vibrato = &preset.vibrato;
+            assert!(!vibrato.enabled);
+            assert_relative_eq!(vibrato.attack, 232.0, epsilon = 0.0001);
+            assert_relative_eq!(vibrato.delay, 232.0, epsilon = 0.0001);
+            assert_relative_eq!(vibrato.frequency, 6.1, epsilon = 0.0001);
+
+            assert_eq!(preset.matrix[0].source, 7);
+            assert_eq!(preset.matrix[0].target, 2);
+            assert_eq!(preset.matrix[0].amount, 1.0);
+            for index in 1..MODULATION_MATRIX_SIZE {
+                assert_eq!(preset.matrix[index].source, 0);
+                assert_eq!(preset.matrix[index].target, 0);
+                assert_eq!(preset.matrix[index].amount, 0.0);
+            }
+
+            //
+            // Effects
+            //
+
+            let expected_effect_order: Vec<EffectType> = EffectType::iter().collect();
+            assert_eq!(&preset.effect_order, &expected_effect_order);
+
+            let chorus = &preset.chorus;
+            assert!(!chorus.enabled);
+            assert_eq!(chorus.depth, 0.5);
+            assert_eq!(chorus.mix, 0.5);
+            assert_eq!(chorus.pre_delay, 0.5);
+            assert_eq!(chorus.ratio, 0.5);
+
+            let delay = &preset.delay;
+            assert!(!delay.enabled);
+            assert!(!delay.ping_pong);
+            assert!(delay.sync);
+            assert_eq!(delay.filter_mode, DelayFilterMode::Off);
+            assert_relative_eq!(delay.time, 0.17, epsilon = 0.0001);
+            assert_relative_eq!(delay.feedback, 0.3, epsilon = 0.0001);
+            assert_relative_eq!(delay.mix, 0.2, epsilon = 0.0001);
+
+            let distortion = &preset.distortion;
+            assert!(!distortion.enabled);
+            assert_relative_eq!(distortion.gain, 0.2, epsilon = 0.0001);
+
+            let effect_filter = &preset.effect_filter;
+            assert!(!effect_filter.enabled);
+            assert_eq!(effect_filter.mode, FilterMode::LowPass);
+            assert_eq!(effect_filter.effect_mode, FilterEffectMode::Off);
+            assert_relative_eq!(effect_filter.cutoff_frequency, 0.5, epsilon = 0.0001);
+            assert_relative_eq!(effect_filter.resonance, 0.1, epsilon = 0.0001);
+            assert_relative_eq!(effect_filter.resonance, 0.1, epsilon = 0.0001);
+            assert_relative_eq!(effect_filter.key_tracking, 0.0, epsilon = 0.0001);
+            assert_relative_eq!(effect_filter.effect_amount, 0.0, epsilon = 0.0001);
+            assert_relative_eq!(preset.filter_envelope_curve, 0.14, epsilon = 0.0001);
+
+            let equalizer = preset.equalizer;
+            assert!(!equalizer.enabled);
+            assert_eq!(equalizer.low_gain.get::<percent>(), 0.5);
+            assert_eq!(equalizer.mid_gain.get::<percent>(), 0.5);
+            assert_eq!(equalizer.high_gain.get::<percent>(), 0.5);
+
+            let lofi = &preset.lofi;
+            assert!(!lofi.enabled);
+            assert_relative_eq!(lofi.bitrate, 1.0, epsilon = 0.0001);
+            assert_relative_eq!(lofi.sample_rate, 1.0, epsilon = 0.0001);
+            assert_relative_eq!(lofi.mix, 1.0, epsilon = 0.0001);
+
+            let reverb = &preset.reverb;
+            assert!(!reverb.enabled);
+            assert_relative_eq!(reverb.dampen, 0.3, epsilon = 0.0001);
+            assert_relative_eq!(reverb.filter, 0.0, epsilon = 0.0001);
+            assert_relative_eq!(reverb.room, 0.3, epsilon = 0.0001);
+            assert_relative_eq!(reverb.width, 0.8, epsilon = 0.0001);
+            assert_relative_eq!(reverb.mix, 0.2, epsilon = 0.0001);
         }
-
-        assert!(!preset.hard_sync);
-
-        let noise = &preset.noise;
-        assert!(!noise.enabled);
-        assert_relative_eq!(noise.width, 1.0, epsilon = 0.0001);
-        assert_relative_eq!(noise.pan, 0.5, epsilon = 0.0001);
-        assert_relative_eq!(noise.volume, 0.32, epsilon = 0.0001);
-
-        //
-        // Modulators
-        //
-
-        assert_eq!(preset.lfos.len(), 2);
-        for lfo in &preset.lfos {
-            assert!(!lfo.enabled);
-            assert_eq!(lfo.waveform, Waveform::Sine);
-            assert!(lfo.sync);
-            assert!(!lfo.invert);
-            assert!(!lfo.reverse);
-            assert!(!lfo.mono);
-            assert!(!lfo.free_run);
-            assert_relative_eq!(lfo.frequency, 0.35, epsilon = 0.0001);
-            assert_relative_eq!(lfo.phase, 0.0, epsilon = 0.0001);
-        }
-
-        assert_eq!(preset.mod_envelopes.len(), 2);
-        for mod_envelope in &preset.mod_envelopes {
-            assert!(!mod_envelope.enabled);
-            assert_relative_eq!(mod_envelope.curve, 0.14, epsilon = 0.0001);
-            let env = &mod_envelope.envelope;
-            assert_relative_eq!(env.attack.get::<millisecond>(), 1.0, epsilon = 0.0001);
-            assert_relative_eq!(env.attack_curve, 0.07, epsilon = 0.0001);
-            assert_relative_eq!(env.decay.get::<millisecond>(), 150.0, epsilon = 0.0001);
-            assert_relative_eq!(env.decay_falloff, 0.07, epsilon = 0.0001);
-            assert_relative_eq!(env.sustain.get::<percent>(), 0.9, epsilon = 0.0001);
-            assert_relative_eq!(env.release.get::<millisecond>(), 1.0, epsilon = 0.0001);
-            assert_relative_eq!(env.release_falloff, 0.07, epsilon = 0.0001);
-        }
-
-        let vibrato = &preset.vibrato;
-        assert!(!vibrato.enabled);
-        assert_relative_eq!(vibrato.attack, 232.0, epsilon = 0.0001);
-        assert_relative_eq!(vibrato.delay, 232.0, epsilon = 0.0001);
-        assert_relative_eq!(vibrato.frequency, 6.1, epsilon = 0.0001);
-
-        assert_eq!(preset.matrix[0].source, 7);
-        assert_eq!(preset.matrix[0].target, 2);
-        assert_eq!(preset.matrix[0].amount, 1.0);
-        for index in 1..MODULATION_MATRIX_SIZE {
-            assert_eq!(preset.matrix[index].source, 0);
-            assert_eq!(preset.matrix[index].target, 0);
-            assert_eq!(preset.matrix[index].amount, 0.0);
-        }
-
-        //
-        // Effects
-        //
-
-        let expected_effect_order: Vec<EffectType> = EffectType::iter().collect();
-        assert_eq!(&preset.effect_order, &expected_effect_order);
-
-        let chorus = &preset.chorus;
-        assert!(!chorus.enabled);
-        assert_eq!(chorus.depth, 0.5);
-        assert_eq!(chorus.mix, 0.5);
-        assert_eq!(chorus.pre_delay, 0.5);
-        assert_eq!(chorus.ratio, 0.5);
-
-        let delay = &preset.delay;
-        assert!(!delay.enabled);
-        assert!(!delay.ping_pong);
-        assert!(delay.sync);
-        assert_relative_eq!(delay.time, 0.17, epsilon = 0.0001);
-        assert_relative_eq!(delay.feedback, 0.3, epsilon = 0.0001);
-        assert_relative_eq!(delay.filter, 0.0, epsilon = 0.0001);
-        assert_relative_eq!(delay.mix, 0.2, epsilon = 0.0001);
-
-        let distortion = &preset.distortion;
-        assert!(!distortion.enabled);
-        assert_relative_eq!(distortion.gain, 0.2, epsilon = 0.0001);
-
-        let effect_filter = &preset.effect_filter;
-        assert!(!effect_filter.enabled);
-        assert_eq!(effect_filter.mode, FilterMode::LowPass);
-        assert_eq!(effect_filter.effect_mode, FilterEffectMode::Off);
-        assert_relative_eq!(effect_filter.cutoff_frequency, 0.5, epsilon = 0.0001);
-        assert_relative_eq!(effect_filter.resonance, 0.1, epsilon = 0.0001);
-        assert_relative_eq!(effect_filter.resonance, 0.1, epsilon = 0.0001);
-        assert_relative_eq!(effect_filter.key_tracking, 0.0, epsilon = 0.0001);
-        assert_relative_eq!(effect_filter.effect_amount, 0.0, epsilon = 0.0001);
-        assert_relative_eq!(preset.filter_envelope_curve, 0.14, epsilon = 0.0001);
-
-        let equalizer = preset.equalizer;
-        assert!(!equalizer.enabled);
-        assert_eq!(equalizer.low_gain.get::<percent>(), 0.5);
-        assert_eq!(equalizer.mid_gain.get::<percent>(), 0.5);
-        assert_eq!(equalizer.high_gain.get::<percent>(), 0.5);
-
-        let lofi = &preset.lofi;
-        assert!(!lofi.enabled);
-        assert_relative_eq!(lofi.bitrate, 1.0, epsilon = 0.0001);
-        assert_relative_eq!(lofi.sample_rate, 1.0, epsilon = 0.0001);
-        assert_relative_eq!(lofi.mix, 1.0, epsilon = 0.0001);
-
-        let reverb = &preset.reverb;
-        assert!(!reverb.enabled);
-        assert_relative_eq!(reverb.dampen, 0.3, epsilon = 0.0001);
-        assert_relative_eq!(reverb.filter, 0.0, epsilon = 0.0001);
-        assert_relative_eq!(reverb.room, 0.3, epsilon = 0.0001);
-        assert_relative_eq!(reverb.width, 0.8, epsilon = 0.0001);
-        assert_relative_eq!(reverb.mix, 0.2, epsilon = 0.0001);
     }
 
     #[test]

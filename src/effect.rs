@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use std::fmt::{Display, Formatter};
 
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -21,12 +22,89 @@ impl Effect for Chorus {
     }
 }
 
+/// Mode for the filter built into the delay effect.
+///
+/// The discriminants of the items match the values in the preset file times
+/// 1000 and converted to ints, because Babylon stores enumerations as floating
+/// point values. Listed in the order they appear in the Babylon user interface.
+#[derive(Copy, Clone, Debug, EnumIter, Eq, PartialEq)]
+#[repr(u32)]
+pub enum DelayFilterMode {
+    Off = 0,
+    LowPass5000 = 42,
+    LowPass3800 = 83,
+    LowPass2500 = 125,
+    LowPass1600 = 167,
+    LowPass1000 = 208,
+    LowPass750 = 25,
+    LowPass400 = 292,
+    LowPass200 = 333,
+    HighPass4000 = 375,
+    HighPass2000 = 417,
+    HighPass1200 = 458,
+    HighPass800 = 500,
+    HighPass600 = 542,
+    HighPass400 = 583,
+    HighPass250 = 625,
+    HighPass100 = 667,
+    BandPass3000 = 708,
+    BandPass1800 = 750,
+    BandPass1300 = 792,
+    BandPass1000 = 833,
+    BandPass700 = 875,
+    BandPass500 = 917,
+    BandPass300 = 958,
+    BandPass150 = 1000,
+}
+
+impl DelayFilterMode {
+    pub(crate) fn from_or(mode_id: u32, default: Self) -> Self {
+        Self::iter()
+            .find(|id| *id as u32 == mode_id)
+            .unwrap_or(default)
+    }
+}
+
+impl Display for DelayFilterMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        use DelayFilterMode::*;
+        let msg = match self {
+            Off => "Filter: Off",
+            LowPass5000 => "LP: 5000 Hz",
+            LowPass3800 => "LP: 3800 Hz",
+            LowPass2500 => "LP: 2500 Hz",
+            LowPass1600 => "LP: 1600 Hz",
+            LowPass1000 => "LP: 1000 Hz",
+            LowPass750 => "LP: 750 Hz",
+            LowPass400 => "LP: 400 Hz",
+            LowPass200 => "LP: 200 Hz",
+            HighPass4000 => "HP: 4000 Hz",
+            HighPass2000 => "HP: 2000 Hz",
+            HighPass1200 => "HP: 1200 Hz",
+            HighPass800 => "HP: 800 Hz",
+            HighPass600 => "HP: 600 Hz",
+            HighPass400 => "HP: 400 Hz",
+            HighPass250 => "HP: 250 Hz",
+            HighPass100 => "HP: 100 Hz",
+            BandPass3000 => "BP: 3000 Hz",
+            BandPass1800 => "BP: 1800 Hz",
+            BandPass1300 => "BP: 1300 Hz",
+            BandPass1000 => "BP: 1000 Hz",
+            BandPass700 => "BP: 700 Hz",
+            BandPass500 => "BP: 500 Hz",
+            BandPass300 => "BP: 300 Hz",
+            BandPass150 => "BP: 150 Hz",
+        };
+        f.write_str(msg)
+    }
+}
+
 #[derive(Debug)]
 pub struct Delay {
     pub enabled: bool,
     pub ping_pong: bool,
     pub feedback: f64,
-    pub filter: f64,
+    pub filter_mode: DelayFilterMode,
     pub sync: bool,
     pub time: f64,
     pub mix: f64,
@@ -72,7 +150,9 @@ impl Effect for Equalizer {
     }
 }
 
-/// Kinds of effects. The discriminants of the items match the file format. This is the default
+/// Kinds of effects.
+///
+/// The discriminants of the items match the file format. This is the default
 /// ordering of the effects.
 #[derive(Copy, Clone, Debug, EnumIter, Eq, PartialEq)]
 #[repr(u32)]
@@ -90,7 +170,7 @@ impl TryFrom<u32> for EffectType {
     type Error = String;
 
     fn try_from(effect_type_id: u32) -> Result<Self, Self::Error> {
-        EffectType::iter()
+        Self::iter()
             .find(|id| *id as u32 == effect_type_id)
             .ok_or(format!("Unknown effect type ID {}", effect_type_id))
     }
@@ -108,8 +188,8 @@ pub enum FilterMode {
 }
 
 impl FilterMode {
-    pub(crate) fn from_or(mode_id: u32, default: FilterMode) -> FilterMode {
-        FilterMode::iter()
+    pub(crate) fn from_or(mode_id: u32, default: Self) -> Self {
+        Self::iter()
             .find(|id| *id as u32 == mode_id)
             .unwrap_or(default)
     }
@@ -202,7 +282,7 @@ mod test {
     use strum::IntoEnumIterator;
     use uom::si::ratio::percent;
 
-    use crate::{EffectType, FilterMode, Preset};
+    use crate::{DelayFilterMode, EffectType, FilterMode, Preset};
 
     fn read_preset(filename: &str) -> Result<Preset> {
         let path = &Path::new("tests").join("effects").join(&filename);
@@ -221,7 +301,7 @@ mod test {
         assert!(preset.delay.ping_pong);
         assert!(preset.delay.sync);
         assert_eq!(preset.delay.time, 1.0);
-        assert_relative_eq!(preset.delay.filter, 0.667, epsilon = 0.00001);
+        assert_eq!(preset.delay.filter_mode, DelayFilterMode::HighPass100);
 
         let preset = read_preset("delay-time504-syncoff-1.0.3.bab").unwrap();
         assert!(!preset.delay.sync);
@@ -229,11 +309,30 @@ mod test {
 
         let preset = read_preset("delay-timehalf-lp200-1.0.3.bab").unwrap();
         assert_relative_eq!(preset.delay.time, 0.257, epsilon = 0.00001);
-        assert_relative_eq!(preset.delay.filter, 0.333, epsilon = 0.00001);
+        assert_eq!(preset.delay.filter_mode, DelayFilterMode::LowPass200);
 
         let preset = read_preset("delay-timesixteenth-bp3000-1.0.3.bab").unwrap();
         assert_relative_eq!(preset.delay.time, 0.410, epsilon = 0.00001);
-        assert_relative_eq!(preset.delay.filter, 0.708, epsilon = 0.00001);
+        assert_eq!(preset.delay.filter_mode, DelayFilterMode::BandPass3000);
+    }
+
+    #[test]
+    fn delay_filter_mode() {
+        let preset = read_preset("delay-band_pass_150-1.0.4.bab").unwrap();
+        assert!(preset.delay.enabled);
+        assert_eq!(preset.delay.filter_mode, DelayFilterMode::BandPass150);
+
+        let preset = read_preset("delay-band_pass_1000-1.0.4.bab").unwrap();
+        assert!(preset.delay.enabled);
+        assert_eq!(preset.delay.filter_mode, DelayFilterMode::BandPass1000);
+
+        let preset = read_preset("delay-high_pass_250-1.0.4.bab").unwrap();
+        assert!(preset.delay.enabled);
+        assert_eq!(preset.delay.filter_mode, DelayFilterMode::HighPass250);
+
+        let preset = read_preset("delay-low_pass_200-1.0.4.bab").unwrap();
+        assert!(preset.delay.enabled);
+        assert_eq!(preset.delay.filter_mode, DelayFilterMode::LowPass200);
     }
 
     #[test]
