@@ -13,13 +13,12 @@ keywords = ["audio", "synth", "patch", "preset", "babylon"]
 publish = true 
 
 [dependencies]
-log = "0.4"
-serde = { version = "1.0", features = ["derive"] }
-serde-xml-rs = "0.6"
-strum = "0.24"
-strum_macros = "0.24"
-uom = { version = "0.34", default-features = false, features = ["f64", "si", "std"] }
+log = "0.4.22"
+serde = { version = "1.0.216", features = ["derive"] }
+serde-xml-rs = "0.6.0"
+strum = "0.26.3"
+strum_macros = "0.26.4"
+uom = { version = "0.36", default-features = false, features = ["f64", "si", "std"] }
 
 [dev-dependencies]
-approx = "0.5"
-
+approx = "0.5.1"
